@@ -39,7 +39,7 @@ public final class Scanner {
 
 	private boolean isOperator(char c) {
 		return (c == '+' || c == '-' || c == '*' || c == '/' || c == '=' || c == '<' || c == '>' || c == '\\'
-				|| c == '&' || c == '@' || c == '%' || c == '^' || c == '?');
+				|| c == '&' || c == '@' || c == '%' || c == '^' || c == '?' || c == '|'); // Added '|'
 	}
 
 	///////////////////////////////////////////////////////////////////////////////
@@ -67,25 +67,31 @@ public final class Scanner {
 
 	private void scanSeparator() {
 		switch (currentChar) {
-		
-		// comment
-		case '!': 
-			takeIt();
-			
-			// the comment ends when we reach an end-of-line (EOL) or end of file (EOT - for end-of-transmission)
-			while ((currentChar != SourceFile.EOL) && (currentChar != SourceFile.EOT))
+			// comment
+			case '!':
+			case '#':
 				takeIt();
-			if (currentChar == SourceFile.EOL)
+				while ((currentChar != SourceFile.EOL) && (currentChar != SourceFile.EOT))
+					takeIt();
+				if (currentChar == SourceFile.EOL)
+					takeIt();
+				break;
+			case '$':
 				takeIt();
-			break;
+				while (currentChar != '$' && currentChar != SourceFile.EOT) {
+					takeIt();
+				}
+				if (currentChar == '$')
+					takeIt();
+				break;
 
-		// whitespace
-		case ' ':
-		case '\n':
-		case '\r':
-		case '\t':
-			takeIt();
-			break;
+			// whitespace
+			case ' ':
+			case '\n':
+			case '\r':
+			case '\t':
+				takeIt();
+				break;
 		}
 	}
 
@@ -182,6 +188,22 @@ public final class Scanner {
 			while (isOperator(currentChar))
 				takeIt();
 			return Token.Kind.OPERATOR;
+			case '|':
+				takeIt();
+				if (isDigit(currentChar)) {
+					// Read the number after '|'
+					while (isDigit(currentChar))
+						takeIt();
+					// Convert the number to integer and multiply by 100
+					int value = Integer.parseInt(currentSpelling.toString().substring(1)) * 100;
+					// Replace the currentSpelling with the new value
+					currentSpelling = new StringBuffer(Integer.toString(value));
+					return Token.Kind.INTLITERAL;
+				}
+				// If not followed by a digit, treat as a regular operator
+				while (isOperator(currentChar))
+					takeIt();
+				return Token.Kind.OPERATOR;
 
 		case '\'':
 			takeIt();
@@ -256,7 +278,7 @@ public final class Scanner {
 
 		currentlyScanningToken = false;
 		// skip any whitespace or comments
-		while (currentChar == '!' || currentChar == ' ' || currentChar == '\n' || currentChar == '\r'
+		while (currentChar == '!' || currentChar == '#' || currentChar == '$' || currentChar == ' ' || currentChar == '\n' || currentChar == '\r'
 				|| currentChar == '\t')
 			scanSeparator();
 
